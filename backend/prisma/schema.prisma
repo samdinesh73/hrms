@@ -1,0 +1,479 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER TYPES ====================
+enum UserRole {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  RESIGNED
+  TERMINATED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  EARNED_LEAVE
+  CASUAL_LEAVE
+  SICK_LEAVE
+  MATERNITY_LEAVE
+  PATERNITY_LEAVE
+  UNPAID_LEAVE
+  SPECIAL_LEAVE
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  WORK_FROM_HOME
+  ON_LEAVE
+}
+
+// ==================== MAIN MODELS ====================
+
+// Department Model
+model Department {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  budget        Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  employees     Employee[]
+  managers      Manager[]
+
+  @@map("departments")
+}
+
+// User Base Model
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          UserRole
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  employee      Employee?
+  manager       Manager?
+  admin         Admin?
+
+  @@map("users")
+}
+
+// Employee Model
+model Employee {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  employeeId            String   @unique
+  firstName             String
+  lastName              String
+  email                 String   @unique
+  phone                 String?
+  dateOfBirth           DateTime?
+  gender                String?
+  address               String?
+  city                  String?
+  state                 String?
+  zipCode               String?
+  country               String?
+  
+  // Employment Details
+  departmentId          String
+  reportingManagerId    String?
+  designation           String
+  joinDate              DateTime
+  employmentStatus      EmploymentStatus @default(ACTIVE)
+  employmentType        String? // Full-time, Part-time, Contract
+  
+  // Salary & Benefits
+  baseSalary            Float
+  allowances            Float @default(0)
+  deductions            Float @default(0)
+  bankAccountNumber     String?
+  bankName              String?
+  ifscCode              String?
+  
+  // Leaves & Attendance
+  totalLeaveBalance     Float @default(20)
+  usedLeaves            Float @default(0)
+  
+  // Documents & Compliance
+  panNumber             String?
+  aadharNumber          String?
+  passportNumber        String?
+  
+  // Metadata
+  avatar                String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department            Department @relation(fields: [departmentId], references: [id])
+  reportingManager      Manager? @relation("reportingTo", fields: [reportingManagerId], references: [id])
+  
+  // Many-to-Many & One-to-Many
+  leaves                Leave[]
+  tasks                 Task[]
+  attendance            Attendance[]
+  salaryDetails         SalaryDetail[]
+  performanceReviews    PerformanceReview[]
+  
+  @@index([departmentId])
+  @@index([reportingManagerId])
+  @@map("employees")
+}
+
+// Manager Model
+model Manager {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  firstName             String
+  lastName             String
+  email                String   @unique
+  phone                String?
+  
+  // Department & Management Details
+  departmentId         String
+  designation          String
+  joinDate             DateTime
+  
+  // Team Management
+  teamSize             Int @default(0)
+  
+  // Metadata
+  avatar               String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department           Department @relation(fields: [departmentId], references: [id])
+  employees            Employee[] @relation("reportingTo")
+  taskAssignments      TaskAssignment[]
+  leaveApprovals       LeaveApproval[]
+  performanceReviews   PerformanceReview[]
+
+  @@index([departmentId])
+  @@map("managers")
+}
+
+// Admin Model
+model Admin {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  firstName             String
+  lastName              String
+  email                 String   @unique
+  phone                 String?
+  
+  // Admin Permissions
+  permissions           String[] @default([])
+  
+  // Metadata
+  avatar                String?
+  lastLoginAt           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+// Task Model
+model Task {
+  id                    String   @id @default(cuid())
+  title                 String
+  description           String?
+  assignedToId          String
+  assignedById          String
+  
+  // Task Details
+  status                TaskStatus @default(PENDING)
+  priority              TaskPriority @default(MEDIUM)
+  
+  // Dates
+  startDate             DateTime?
+  dueDate               DateTime
+  completedAt           DateTime?
+  
+  // Tracking
+  estimatedHours        Float?
+  actualHours           Float?
+  completionPercentage  Float @default(0)
+  
+  // Additional Info
+  tags                  String[]
+  attachment            String?
+  notes                 String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  assignedTo            Employee @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  taskAssignments       TaskAssignment[]
+
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// Task Assignment Model (for tracking multiple assignments)
+model TaskAssignment {
+  id                    String   @id @default(cuid())
+  taskId                String
+  managerId             String
+  assignedDate          DateTime @default(now())
+  
+  // Relations
+  task                  Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignedBy            Manager  @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, managerId])
+  @@index([taskId])
+  @@index([managerId])
+  @@map("task_assignments")
+}
+
+// Leave Model
+model Leave {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  leaveType             LeaveType
+  
+  // Leave Duration
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Float
+  
+  // Status & Approvals
+  status                LeaveStatus @default(PENDING)
+  reason                String?
+  approvedBy            String?
+  approvalDate          DateTime?
+  rejectionReason       String?
+  
+  // Metadata
+  appliedOn             DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveApprovals        LeaveApproval[]
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate])
+  @@map("leaves")
+}
+
+// Leave Approval Model (for tracking approvals)
+model LeaveApproval {
+  id                    String   @id @default(cuid())
+  leaveId               String
+  managerId             String
+  status                LeaveStatus
+  approvalDate          DateTime @default(now())
+  comments              String?
+
+  // Relations
+  leave                 Leave    @relation(fields: [leaveId], references: [id], onDelete: Cascade)
+  approvedBy            Manager  @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([leaveId, managerId])
+  @@index([leaveId])
+  @@index([managerId])
+  @@map("leave_approvals")
+}
+
+// Salary Detail Model
+model SalaryDetail {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  month                 Int     // 1-12
+  year                  Int     // 2024, 2025, etc
+  
+  // Salary Components
+  baseSalary            Float
+  allowances            Float @default(0)
+  bonuses               Float @default(0)
+  deductions            Float @default(0)
+  taxes                 Float @default(0)
+  
+  // Calculations
+  grossSalary           Float
+  netSalary             Float
+  
+  // Status
+  status                String @default("PENDING") // PENDING, APPROVED, PAID
+  paymentDate           DateTime?
+  
+  // Metadata
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, month, year])
+  @@index([employeeId])
+  @@index([status])
+  @@map("salary_details")
+}
+
+// Attendance Model
+model Attendance {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  attendanceDate        DateTime
+  status                AttendanceStatus
+  
+  // Additional Details
+  checkInTime           DateTime?
+  checkOutTime          DateTime?
+  workHours             Float?
+  notes                 String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, attendanceDate])
+  @@index([employeeId])
+  @@index([attendanceDate])
+  @@map("attendance")
+}
+
+// Performance Review Model
+model PerformanceReview {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  reviewedById          String
+  
+  // Review Details
+  reviewPeriodStart     DateTime
+  reviewPeriodEnd       DateTime
+  overallRating         Float // 1-5
+  
+  // Performance Categories
+  technicalSkills       Float?
+  communicationSkills   Float?
+  teamwork              Float?
+  productivity          Float?
+  reliability           Float?
+  
+  // Comments
+  strengths             String?
+  areasForImprovement   String?
+  goals                 String?
+  generalComments       String?
+  
+  // Metadata
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewedBy            Manager  @relation(fields: [reviewedById], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, reviewPeriodStart, reviewPeriodEnd])
+  @@index([employeeId])
+  @@index([reviewedById])
+  @@map("performance_reviews")
+}
+
+// Leave Balance Model (for tracking leave balance per year)
+model LeaveBalance {
+  id                    String   @id @default(cuid())
+  employeeId            String   @unique
+  year                  Int
+  earnedLeave           Float @default(20)
+  casualLeave           Float @default(12)
+  sickLeave             Float @default(10)
+  maternityLeave        Float @default(180) // in days
+  paternityLeave        Float @default(15)
+  unpaidLeave           Float @default(0)
+  
+  // Usage Tracking
+  earnedLeaveUsed       Float @default(0)
+  casualLeaveUsed       Float @default(0)
+  sickLeaveUsed         Float @default(0)
+  
+  updatedAt             DateTime @updatedAt
+
+  @@unique([employeeId, year])
+  @@map("leave_balances")
+}
+
+// Payroll History Model
+model PayrollHistory {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  month                 Int
+  year                  Int
+  
+  // Processed Details
+  processedOn           DateTime
+  processedBy           String
+  status                String @default("PROCESSED") // PROCESSED, PAID, PENDING
+  
+  createdAt             DateTime @default(now())
+
+  // Relations for reference
+  @@unique([employeeId, month, year])
+  @@index([employeeId])
+  @@map("payroll_history")
+}
