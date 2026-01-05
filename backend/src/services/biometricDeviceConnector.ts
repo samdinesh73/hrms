@@ -39,7 +39,7 @@ export class BiometricDeviceConnector {
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
-  private pollInterval: NodeJS.Timer | null = null;
+  private pollInterval: NodeJS.Timeout | null = null;
 
   constructor(config: BiometricDeviceConfig, prisma: PrismaClient) {
     this.config = {

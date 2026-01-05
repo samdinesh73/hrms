@@ -1,7 +1,8 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { useState, useEffect } from "react"
+import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react"
+import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,224 +10,201 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/components/ui/sidebar"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Calendar, Check, X, Clock, Search } from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
-export default function LeaveManagementPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterLeaveType, setFilterLeaveType] = useState("all");
-  const [leaveRequests, setLeaveRequests] = useState([
-    {
-      id: 1,
-      empId: "EMP001",
-      name: "John Doe",
-      avatar: "https://github.com/shadcn.png",
-      leaveType: "Earned Leave",
-      department: "IT",
-      from: "Jan 10, 2026",
-      to: "Jan 15, 2026",
-      days: 5,
-      status: "Pending",
-      reason: "Vacation with family",
-      appliedOn: "Dec 28, 2025",
-    },
-    {
-      id: 2,
-      empId: "EMP002",
-      name: "Jane Smith",
-      avatar: "https://github.com/vercel.png",
-      leaveType: "Casual Leave",
-      department: "HR",
-      from: "Jan 5, 2026",
-      to: "Jan 6, 2026",
-      days: 2,
-      status: "Pending",
-      reason: "Personal work",
-      appliedOn: "Dec 30, 2025",
-    },
-    {
-      id: 3,
-      empId: "EMP003",
-      name: "Mike Johnson",
-      avatar: "",
-      leaveType: "Sick Leave",
-      department: "Design",
-      from: "Jan 3, 2026",
-      to: "Jan 4, 2026",
-      days: 2,
-      status: "Approved",
-      reason: "Medical appointment",
-      appliedOn: "Dec 31, 2025",
-    },
-    {
-      id: 4,
-      empId: "EMP004",
-      name: "Sarah Williams",
-      avatar: "",
-      leaveType: "Earned Leave",
-      department: "Finance",
-      from: "Jan 20, 2026",
-      to: "Jan 25, 2026",
-      days: 5,
-      status: "Rejected",
-      reason: "Family trip",
-      appliedOn: "Dec 25, 2025",
-    },
-    {
-      id: 5,
-      empId: "EMP005",
-      name: "Alex Turner",
-      avatar: "",
-      leaveType: "Casual Leave",
-      department: "Sales",
-      from: "Jan 8, 2026",
-      to: "Jan 8, 2026",
-      days: 1,
-      status: "Pending",
-      reason: "Home appointment",
-      appliedOn: "Jan 1, 2026",
-    },
-    {
-      id: 6,
-      empId: "EMP006",
-      name: "Emma Davis",
-      avatar: "",
-      leaveType: "Sick Leave",
-      department: "IT",
-      from: "Jan 1, 2026",
-      to: "Jan 2, 2026",
-      days: 2,
-      status: "Approved",
-      reason: "Fever",
-      appliedOn: "Dec 31, 2025",
-    },
-    {
-      id: 7,
-      empId: "EMP007",
-      name: "Robert Brown",
-      avatar: "",
-      leaveType: "Maternity/Paternity",
-      department: "Finance",
-      from: "Feb 1, 2026",
-      to: "Mar 31, 2026",
-      days: 60,
-      status: "Pending",
-      reason: "Paternity leave",
-      appliedOn: "Dec 15, 2025",
-    },
-    {
-      id: 8,
-      empId: "EMP008",
-      name: "Lisa Anderson",
-      avatar: "",
-      leaveType: "Earned Leave",
-      department: "Sales",
-      from: "Jan 12, 2026",
-      to: "Jan 14, 2026",
-      days: 3,
-      status: "Approved",
-      reason: "Wedding ceremony",
-      appliedOn: "Dec 26, 2025",
-    },
-  ]);
+interface LeaveRequest {
+  id: string
+  employeeId: string
+  employee?: {
+    firstName: string
+    lastName: string
+    email: string
+    designation: string
+    department?: { name: string }
+  }
+  leaveType: string
+  startDate: string
+  endDate: string
+  totalDays: number
+  reason: string
+  status: "PENDING" | "APPROVED" | "REJECTED"
+  appliedOn: string
+  approvalDate?: string
+  rejectionReason?: string
+  approvedBy?: string
+}
 
-  const [selectedRequest, setSelectedRequest] = useState<(typeof leaveRequests)[0] | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogAction, setDialogAction] = useState<"approve" | "reject" | null>(null);
+const LEAVE_TYPES: Record<string, string> = {
+  EARNED_LEAVE: "Earned Leave",
+  CASUAL_LEAVE: "Casual Leave",
+  SICK_LEAVE: "Sick Leave",
+  MATERNITY_LEAVE: "Maternity Leave",
+  PATERNITY_LEAVE: "Paternity Leave",
+  UNPAID_LEAVE: "Unpaid Leave",
+  SPECIAL_LEAVE: "Special Leave",
+}
 
-  const leaveTypes = ["all", "Earned Leave", "Casual Leave", "Sick Leave", "Maternity/Paternity"];
-  const statuses = ["all", "Pending", "Approved", "Rejected"];
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "APPROVED":
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+          <CheckCircle className="w-3 h-3 mr-1" /> Approved
+        </Badge>
+      )
+    case "REJECTED":
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
+          <XCircle className="w-3 h-3 mr-1" /> Rejected
+        </Badge>
+      )
+    default:
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+          <Clock className="w-3 h-3 mr-1" /> Pending
+        </Badge>
+      )
+  }
+}
 
-  const filteredRequests = leaveRequests.filter((request) => {
-    const matchesSearch =
-      request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.empId.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === "all" || request.status === filterStatus;
-    const matchesLeaveType = filterLeaveType === "all" || request.leaveType === filterLeaveType;
+export default function AdminLeavePage() {
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
+  const [filteredRequests, setFilteredRequests] = useState<LeaveRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null)
+  const [approvalStatus, setApprovalStatus] = useState<"APPROVED" | "REJECTED">("APPROVED")
+  const [approvalComments, setApprovalComments] = useState("")
+  const [processing, setProcessing] = useState(false)
+  const [filterStatus, setFilterStatus] = useState("PENDING")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [stats, setStats] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0,
+  })
 
-    return matchesSearch && matchesStatus && matchesLeaveType;
-  });
+  useEffect(() => {
+    fetchLeaveRequests()
+  }, [])
 
-  const handleApprove = (request: (typeof leaveRequests)[0]) => {
-    setSelectedRequest(request);
-    setDialogAction("approve");
-    setDialogOpen(true);
-  };
+  useEffect(() => {
+    filterLeaveRequests()
+  }, [leaveRequests, filterStatus, searchTerm])
 
-  const handleReject = (request: (typeof leaveRequests)[0]) => {
-    setSelectedRequest(request);
-    setDialogAction("reject");
-    setDialogOpen(true);
-  };
+  const fetchLeaveRequests = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("http://localhost:5000/api/leaves")
+      const data = await response.json()
+      if (data.data) {
+        const leaves: LeaveRequest[] = Array.isArray(data.data) ? data.data : [data.data]
+        setLeaveRequests(leaves)
 
-  const confirmAction = () => {
-    if (selectedRequest && dialogAction) {
-      setLeaveRequests(
-        leaveRequests.map((req) =>
-          req.id === selectedRequest.id ? { ...req, status: dialogAction === "approve" ? "Approved" : "Rejected" } : req
+        // Calculate stats
+        const pending = leaves.filter((l) => l.status === "PENDING").length
+        const approved = leaves.filter((l) => l.status === "APPROVED").length
+        const rejected = leaves.filter((l) => l.status === "REJECTED").length
+        setStats({
+          pending,
+          approved,
+          rejected,
+          total: leaves.length,
+        })
+      }
+    } catch (err) {
+      console.error("Failed to fetch leave requests:", err)
+      setError("Failed to load leave requests")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filterLeaveRequests = () => {
+    let filtered = leaveRequests
+
+    // Filter by status
+    if (filterStatus !== "ALL") {
+      filtered = filtered.filter((l) => l.status === filterStatus)
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter((l) => {
+        const employeeName = `${l.employee?.firstName} ${l.employee?.lastName}`.toLowerCase()
+        const email = l.employee?.email.toLowerCase() || ""
+        const search = searchTerm.toLowerCase()
+        return employeeName.includes(search) || email.includes(search)
+      })
+    }
+
+    setFilteredRequests(filtered)
+  }
+
+  const handleApproveReject = async (leaveId: string, status: "APPROVED" | "REJECTED") => {
+    setProcessing(true)
+    try {
+      const response = await fetch(`http://localhost:5000/api/leaves/${leaveId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          managerId: "admin", // Could be current user's ID
+          status,
+          approvalDate: new Date().toISOString(),
+          comments: approvalComments,
+        }),
+      })
+
+      if (response.ok) {
+        // Update local state
+        setLeaveRequests((prev) =>
+          prev.map((l) =>
+            l.id === leaveId
+              ? {
+                  ...l,
+                  status,
+                  approvalDate: new Date().toISOString(),
+                  rejectionReason: status === "REJECTED" ? approvalComments : undefined,
+                }
+              : l
+          )
         )
-      );
-      setDialogOpen(false);
-      setSelectedRequest(null);
-      setDialogAction(null);
+        setSelectedLeave(null)
+        setApprovalComments("")
+        setApprovalStatus("APPROVED")
+      } else {
+        setError("Failed to update leave request")
+      }
+    } catch (err) {
+      console.error("Error updating leave:", err)
+      setError("Error processing leave request")
+    } finally {
+      setProcessing(false)
     }
-  };
-
-  const stats = {
-    pending: leaveRequests.filter((r) => r.status === "Pending").length,
-    approved: leaveRequests.filter((r) => r.status === "Approved").length,
-    rejected: leaveRequests.filter((r) => r.status === "Rejected").length,
-    total: leaveRequests.length,
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Approved":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "Rejected":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      default:
-        return "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Approved":
-        return <Check className="w-4 h-4" />;
-      case "Rejected":
-        return <X className="w-4 h-4" />;
-      case "Pending":
-        return <Clock className="w-4 h-4" />;
-      default:
-        return null;
-    }
-  };
+  }
 
   return (
     <SidebarProvider>
@@ -236,13 +214,14 @@ export default function LeaveManagementPage() {
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 bg-white dark:bg-zinc-950">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/dashboard" className="text-black dark:text-white">
-                    HRMS
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="#" className="text-black dark:text-white">HRMS</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -256,224 +235,340 @@ export default function LeaveManagementPage() {
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
-            {/* Page Header */}
+            {/* Page Title */}
             <div>
               <h1 className="text-3xl font-bold text-black dark:text-white">Leave Management</h1>
-              <p className="text-zinc-600 dark:text-zinc-400 mt-1">Review and manage employee leave requests</p>
+              <p className="text-zinc-600 dark:text-zinc-400 mt-1">Review and approve employee leave requests</p>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-100 px-6 py-4 rounded-lg flex gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="bg-white dark:bg-zinc-950">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Requests</p>
-                    <p className="text-3xl font-bold text-black dark:text-white mt-2">{stats.total}</p>
-                  </div>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">All time</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300">Pending</p>
-                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">{stats.pending}</p>
-                  </div>
+              <Card className="bg-white dark:bg-zinc-950">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pending</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Awaiting approval</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-sm text-green-700 dark:text-green-300">Approved</p>
-                    <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{stats.approved}</p>
-                  </div>
+              <Card className="bg-white dark:bg-zinc-950">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Approved</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.approved}</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Approved</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-sm text-red-700 dark:text-red-300">Rejected</p>
-                    <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{stats.rejected}</p>
-                  </div>
+              <Card className="bg-white dark:bg-zinc-950">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Rejected</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.rejected}</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Rejected</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Filters */}
             <Card className="bg-white dark:bg-zinc-950">
-              <CardContent className="pt-6">
-                <div className="flex gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <Input
-                      placeholder="Search by name or employee ID..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Status</Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by status" />
+                    <SelectTrigger>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status === "all" ? "All Status" : status}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="ALL">All Status</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="APPROVED">Approved</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={filterLeaveType} onValueChange={setFilterLeaveType}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by leave type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leaveTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type === "all" ? "All Types" : type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                </div>
+                <div>
+                  <Label>Search Employee</Label>
+                  <Input
+                    placeholder="Name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFilterStatus("PENDING")
+                  setSearchTerm("")
+                }}
+              >
+                Clear Filters
+              </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Request Count */}
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              Showing {filteredRequests.length} of {leaveRequests.length} requests
-            </div>
+            {/* Leave Requests Table */}
+            <Card className="bg-white dark:bg-zinc-950">
+              <CardHeader>
+                <CardTitle>Leave Requests</CardTitle>
+                <CardDescription>Showing {filteredRequests.length} request(s)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+                  </div>
+                ) : filteredRequests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-zinc-600 dark:text-zinc-400">No leave requests found</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Employee</TableHead>
+                          <TableHead>Department</TableHead>
+                          <TableHead>Leave Type</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Days</TableHead>
+                          <TableHead>Applied On</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRequests.map((leave) => (
+                          <TableRow key={leave.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-black dark:text-white">
+                                  {leave.employee?.firstName} {leave.employee?.lastName}
+                                </p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">{leave.employee?.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{leave.employee?.department?.name || "-"}</TableCell>
+                            <TableCell>{LEAVE_TYPES[leave.leaveType]}</TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(leave.startDate).toLocaleDateString()} to{" "}
+                              {new Date(leave.endDate).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="font-medium">{leave.totalDays}</TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(leave.appliedOn).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(leave.status)}</TableCell>
+                            <TableCell className="text-right">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedLeave(leave)}
+                                    disabled={leave.status !== "PENDING"}
+                                  >
+                                    {leave.status === "PENDING" ? "Review" : "View"}
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Leave Request Details</DialogTitle>
+                                    <DialogDescription>
+                                      {leave.employee?.firstName} {leave.employee?.lastName}
+                                    </DialogDescription>
+                                  </DialogHeader>
 
-            {/* Leave Requests List */}
-            <div className="space-y-3">
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => (
-                  <Card key={request.id} className="bg-white dark:bg-zinc-950 hover:shadow-md transition-shadow">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        {/* Left Section */}
-                        <div className="flex items-center gap-4 flex-1">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={request.avatar} />
-                            <AvatarFallback>{request.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-black dark:text-white">{request.name}</p>
-                              <Badge variant="outline" className="text-xs">
-                                {request.empId}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">{request.leaveType}</p>
-                            <div className="flex gap-4 text-xs text-zinc-500 dark:text-zinc-500">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {request.from} to {request.to}
-                              </span>
-                              <span>({request.days} days)</span>
-                            </div>
-                            <p className="text-xs text-zinc-500 mt-1">Reason: {request.reason}</p>
-                          </div>
-                        </div>
+                                  {selectedLeave?.id === leave.id && (
+                                    <div className="space-y-6">
+                                      {/* Employee Info */}
+                                      <div className="grid grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Employee Name</p>
+                                          <p className="font-semibold text-black dark:text-white">
+                                            {leave.employee?.firstName} {leave.employee?.lastName}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Email</p>
+                                          <p className="font-semibold text-black dark:text-white">{leave.employee?.email}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Designation</p>
+                                          <p className="font-semibold text-black dark:text-white">{leave.employee?.designation}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Department</p>
+                                          <p className="font-semibold text-black dark:text-white">{leave.employee?.department?.name}</p>
+                                        </div>
+                                      </div>
 
-                        {/* Middle Section */}
-                        <div className="flex items-center gap-6 mr-6">
-                          <div className="text-right">
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">Department</p>
-                            <p className="font-medium text-black dark:text-white">{request.department}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">Applied On</p>
-                            <p className="font-medium text-black dark:text-white">{request.appliedOn}</p>
-                          </div>
-                        </div>
+                                      {/* Leave Details */}
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Leave Type</p>
+                                          <p className="font-semibold text-black dark:text-white">{LEAVE_TYPES[leave.leaveType]}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Days</p>
+                                          <p className="font-semibold text-black dark:text-white">{leave.totalDays}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">Start Date</p>
+                                          <p className="font-semibold text-black dark:text-white">
+                                            {new Date(leave.startDate).toLocaleDateString()}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-zinc-600 dark:text-zinc-400">End Date</p>
+                                          <p className="font-semibold text-black dark:text-white">
+                                            {new Date(leave.endDate).toLocaleDateString()}
+                                          </p>
+                                        </div>
+                                      </div>
 
-                        {/* Right Section */}
-                        <div className="flex items-center gap-3">
-                          <Badge className={`shrink-0 flex items-center gap-1 ${getStatusColor(request.status)}`}>
-                            {getStatusIcon(request.status)}
-                            {request.status}
-                          </Badge>
+                                      {/* Reason */}
+                                      <div>
+                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Reason</p>
+                                        <p className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg text-sm text-black dark:text-white">{leave.reason}</p>
+                                      </div>
 
-                          {request.status === "Pending" && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleApprove(request)}
-                              >
-                                <Check className="w-4 h-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleReject(request)}
-                              >
-                                <X className="w-4 h-4 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <Card className="bg-white dark:bg-zinc-950">
-                  <CardContent className="pt-12 pb-12">
-                    <div className="text-center">
-                      <p className="text-zinc-600 dark:text-zinc-400 mb-4">No leave requests found matching your criteria.</p>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setFilterStatus("all");
-                          setFilterLeaveType("all");
-                        }}
-                      >
-                        Clear Filters
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                                      {/* Leave Balance Warning */}
+                                      {leave.status === "PENDING" && (
+                                        <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4 rounded-lg">
+                                          <p className="text-sm font-semibold text-orange-700 dark:text-orange-100 mb-2">⚠️ Leave Balance Alert</p>
+                                          <p className="text-sm text-orange-600 dark:text-orange-200">
+                                            Note: This employee's leave balance may be low or zero. Please verify their balance before approving.
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {/* Approval Section */}
+                                      {leave.status === "PENDING" && (
+                                        <div className="space-y-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+                                          <div>
+                                            <Label>Decision</Label>
+                                            <Select
+                                              value={approvalStatus}
+                                              onValueChange={(value) =>
+                                                setApprovalStatus(value as "APPROVED" | "REJECTED")
+                                              }
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="APPROVED">Approve</SelectItem>
+                                                <SelectItem value="REJECTED">Reject</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          <div>
+                                            <Label>Comments {approvalStatus === "REJECTED" && "*"}</Label>
+                                            <Textarea
+                                              placeholder={
+                                                approvalStatus === "REJECTED"
+                                                  ? "Reason for rejection (required)"
+                                                  : "Add any comments (optional)"
+                                              }
+                                              value={approvalComments}
+                                              onChange={(e) => setApprovalComments(e.target.value)}
+                                              rows={3}
+                                              required={approvalStatus === "REJECTED"}
+                                            />
+                                          </div>
+
+                                          <div className="flex gap-3 justify-end">
+                                            <DialogTrigger asChild>
+                                              <Button variant="outline">Cancel</Button>
+                                            </DialogTrigger>
+                                            <Button
+                                              onClick={() => handleApproveReject(leave.id, approvalStatus)}
+                                              disabled={
+                                                processing ||
+                                                (approvalStatus === "REJECTED" && !approvalComments)
+                                              }
+                                              className={
+                                                approvalStatus === "APPROVED"
+                                                  ? "bg-green-600 hover:bg-green-700 text-white"
+                                                  : "bg-red-600 hover:bg-red-700 text-white"
+                                              }
+                                            >
+                                              {processing ? "Processing..." : approvalStatus === "APPROVED" ? "Approve" : "Reject"}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Approved/Rejected Info */}
+                                      {leave.status !== "PENDING" && (
+                                        <div
+                                          className={`border p-4 rounded-lg ${
+                                            leave.status === "APPROVED"
+                                              ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                                              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                          }`}
+                                        >
+                                          <p className={`text-sm font-medium mb-2 ${
+                                            leave.status === "APPROVED"
+                                              ? "text-green-700 dark:text-green-100"
+                                              : "text-red-700 dark:text-red-100"
+                                          }`}>
+                                            {leave.status === "APPROVED" ? "Approved" : "Rejected"} on{" "}
+                                            {leave.approvalDate && new Date(leave.approvalDate).toLocaleDateString()}
+                                          </p>
+                                          {leave.rejectionReason && (
+                                            <p className={`text-sm ${
+                                              leave.status === "APPROVED"
+                                                ? "text-green-600 dark:text-green-200"
+                                                : "text-red-600 dark:text-red-200"
+                                            }`}>{leave.rejectionReason}</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        {/* Confirmation Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {dialogAction === "approve" ? "Approve Leave Request" : "Reject Leave Request"}
-              </DialogTitle>
-              <DialogDescription>
-                {dialogAction === "approve"
-                  ? `Are you sure you want to approve ${selectedRequest?.name}'s ${selectedRequest?.leaveType} from ${selectedRequest?.from} to ${selectedRequest?.to}?`
-                  : `Are you sure you want to reject ${selectedRequest?.name}'s ${selectedRequest?.leaveType} from ${selectedRequest?.from} to ${selectedRequest?.to}?`}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={confirmAction}
-                className={dialogAction === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-              >
-                {dialogAction === "approve" ? "Approve" : "Reject"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }

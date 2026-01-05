@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,32 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default function Home() {
+  const router = useRouter();
   const [selectedMonth, setSelectedMonth] = useState("January");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("authToken");
+    const role = localStorage.getItem("userRole");
+
+    if (!token) {
+      // Not logged in, redirect to login
+      router.push("/login");
+      return;
+    }
+
+    // User is authenticated, allow access
+    setIsLoading(false);
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg">Loading...</p>
+      </div>
+    );
+  }
 
   // Sample data
   const employees = [

@@ -13,6 +13,8 @@
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "seed": "tsx prisma/seed.ts",
+    "seed-auth": "tsx prisma/seed-with-auth.ts",
     "generate-device-mapping": "tsx scripts/generateDeviceMapping.js",
     "verify-deployment": "tsx scripts/verifyDeployment.js",
     "lint": "eslint src --ext .ts",

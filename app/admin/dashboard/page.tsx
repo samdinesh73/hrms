@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -24,65 +25,288 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { UserPlus, FileText, DollarSign, BarChart3, Building2, Settings, Star } from "lucide-react"
+import { UserPlus, FileText, DollarSign, BarChart3, Building2, Settings, Star, AlertCircle } from "lucide-react"
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [searchEmployee, setSearchEmployee] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
-  const [leaveRequests, setLeaveRequests] = useState([
-    { id: 1, empId: "EMP001", name: "John Doe", type: "Earned Leave", from: "Jan 10, 2026", to: "Jan 15, 2026", days: 5, status: "Pending", reason: "Vacation", appliedOn: "Dec 28, 2025" },
-    { id: 2, empId: "EMP002", name: "Jane Smith", type: "Casual Leave", from: "Jan 5, 2026", to: "Jan 6, 2026", days: 2, status: "Pending", reason: "Personal", appliedOn: "Dec 30, 2025" },
-    { id: 3, empId: "EMP003", name: "Mike Johnson", type: "Sick Leave", from: "Jan 3, 2026", to: "Jan 4, 2026", days: 2, status: "Approved", reason: "Medical", appliedOn: "Dec 31, 2025" },
-    { id: 4, empId: "EMP004", name: "Sarah Williams", type: "Earned Leave", from: "Jan 20, 2026", to: "Jan 25, 2026", days: 5, status: "Rejected", reason: "Family", appliedOn: "Dec 25, 2025" },
-  ]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [departmentData, setDepartmentData] = useState<any[]>([]);
+  const [payrollData, setPayrollData] = useState<any[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [attendance, setAttendance] = useState({
+    presentToday: 0,
+    onLeave: 0,
+    absent: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [deptLoading, setDeptLoading] = useState(true);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deptError, setDeptError] = useState<string | null>(null);
 
-  // Employee data
-  const employees = [
-    { id: "EMP001", name: "John Doe", role: "Senior Software Engineer", department: "IT", email: "john@company.com", phone: "+1 555-1234", joinDate: "Mar 15, 2021", salary: "$5,000", status: "Active", avatar: "https://github.com/shadcn.png" },
-    { id: "EMP002", name: "Jane Smith", role: "HR Manager", department: "HR", email: "jane@company.com", phone: "+1 555-5678", joinDate: "Jan 10, 2020", salary: "$4,500", status: "Active", avatar: "https://github.com/vercel.png" },
-    { id: "EMP003", name: "Mike Johnson", role: "Product Designer", department: "Design", email: "mike@company.com", phone: "+1 555-9012", joinDate: "Jun 20, 2022", salary: "$4,200", status: "Active", avatar: "" },
-    { id: "EMP004", name: "Sarah Williams", role: "Finance Lead", department: "Finance", email: "sarah@company.com", phone: "+1 555-3456", joinDate: "Feb 5, 2021", salary: "$4,800", status: "Active", avatar: "" },
-    { id: "EMP005", name: "Alex Turner", role: "Sales Manager", department: "Sales", email: "alex@company.com", phone: "+1 555-7890", joinDate: "Aug 12, 2021", salary: "$4,300", status: "Active", avatar: "" },
-    { id: "EMP006", name: "Emma Davis", role: "QA Engineer", department: "IT", email: "emma@company.com", phone: "+1 555-2345", joinDate: "Apr 8, 2022", salary: "$3,800", status: "On Leave", avatar: "" },
-  ];
 
-  // Payroll data
-  const payrollData = [
-    { empId: "EMP001", name: "John Doe", month: "January 2026", salary: "$5,000", bonus: "$500", deductions: "$200", net: "$5,300", status: "Processed" },
-    { empId: "EMP002", name: "Jane Smith", month: "January 2026", salary: "$4,500", bonus: "$0", deductions: "$180", net: "$4,320", status: "Processed" },
-    { empId: "EMP003", name: "Mike Johnson", month: "January 2026", salary: "$4,200", bonus: "$300", deductions: "$170", net: "$4,330", status: "Pending" },
-    { empId: "EMP004", name: "Sarah Williams", month: "January 2026", salary: "$4,800", bonus: "$400", deductions: "$200", net: "$5,000", status: "Processed" },
-  ];
+  // Check user role on component mount
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+    
+    if (role && role !== "ADMIN") {
+      setAccessDenied(true);
+      setLoading(false);
+    }
+  }, []);
 
-  // Department allocation
-  const departmentData = [
-    { name: "IT", total: 45, available: 38, onLeave: 4, absent: 3, head: "David Chen" },
-    { name: "HR", total: 12, available: 10, onLeave: 1, absent: 1, head: "Sarah Williams" },
-    { name: "Finance", total: 28, available: 25, onLeave: 2, absent: 1, head: "Robert Brown" },
-    { name: "Sales", total: 35, available: 32, onLeave: 2, absent: 1, head: "Lisa Anderson" },
-    { name: "Design", total: 18, available: 16, onLeave: 1, absent: 1, head: "Jessica White" },
-    { name: "Operations", total: 54, available: 48, onLeave: 3, absent: 3, head: "Marcus Wilson" },
-  ];
+  // Fetch employees from backend API
+  useEffect(() => {
+    if (accessDenied) return;
+    
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5000/api/employees");
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch employees: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        // Extract employees from response
+        const employeeList = data.data || data || [];
+        setEmployees(Array.isArray(employeeList) ? employeeList : []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch employees");
+        setEmployees([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Performance metrics
-  const performanceMetrics = [
-    { empId: "EMP001", name: "John Doe", rating: 4.5, projects: 12, tasksCompleted: 95, attendance: 96 },
-    { empId: "EMP002", name: "Jane Smith", rating: 4.2, projects: 8, tasksCompleted: 88, attendance: 98 },
-    { empId: "EMP003", name: "Mike Johnson", rating: 4.0, projects: 15, tasksCompleted: 92, attendance: 94 },
-  ];
+    fetchEmployees();
+  }, [accessDenied]);
+
+  // Fetch departments from backend API
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setDeptLoading(true);
+        const response = await fetch("http://localhost:5000/api/departments");
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch departments: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const deptList = data.data || data || [];
+        setDepartmentData(Array.isArray(deptList) ? deptList : []);
+        setDeptError(null);
+      } catch (err) {
+        console.error("Error fetching departments:", err);
+        setDeptError(err instanceof Error ? err.message : "Failed to fetch departments");
+        setDepartmentData([]);
+      } finally {
+        setDeptLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Fetch payroll data from backend API
+  useEffect(() => {
+    const fetchPayroll = async () => {
+      try {
+        setPayrollLoading(true);
+        const response = await fetch("http://localhost:5000/api/salary");
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch payroll data");
+        }
+        
+        const data = await response.json();
+        const salaries = data.data || data || [];
+        // Transform salary data to match UI expectations
+        const transformedPayroll = salaries.map((salary: any) => ({
+          empId: salary.employeeId,
+          name: `${salary.employee?.firstName || ""} ${salary.employee?.lastName || ""}`.trim(),
+          month: `${salary.month}/${salary.year}`,
+          salary: `$${salary.baseSalary?.toFixed(2) || 0}`,
+          bonus: `$${salary.bonuses?.toFixed(2) || 0}`,
+          deductions: `$${salary.deductions?.toFixed(2) || 0}`,
+          net: `$${salary.netSalary?.toFixed(2) || 0}`,
+          status: salary.status || "Pending",
+        }));
+        setPayrollData(transformedPayroll);
+      } catch (err) {
+        console.error("Error fetching payroll:", err);
+        setPayrollData([]);
+      } finally {
+        setPayrollLoading(false);
+      }
+    };
+
+    fetchPayroll();
+  }, []);
+
+  // Fetch leave requests from backend API
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      try {
+        setLeaveLoading(true);
+        const response = await fetch("http://localhost:5000/api/leaves");
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch leaves");
+        }
+        
+        const data = await response.json();
+        const leaves = data.data || data || [];
+        // Transform leave data
+        const transformedLeaves = leaves.map((leave: any) => ({
+          id: leave.id,
+          empId: leave.employeeId,
+          name: `${leave.employee?.firstName || ""} ${leave.employee?.lastName || ""}`.trim(),
+          type: leave.leaveType,
+          from: new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+          to: new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+          days: leave.totalDays,
+          status: leave.status,
+          reason: leave.reason,
+          appliedOn: new Date(leave.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+        }));
+        setLeaveRequests(transformedLeaves);
+      } catch (err) {
+        console.error("Error fetching leaves:", err);
+        setLeaveRequests([]);
+      } finally {
+        setLeaveLoading(false);
+      }
+    };
+
+    fetchLeaves();
+  }, []);
+
+  // Fetch attendance data from backend API
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setAttendanceLoading(true);
+        // Fetch today's attendance only
+        const today = new Date().toISOString().split("T")[0];
+        const response = await fetch(`http://localhost:5000/api/attendance/date/${today}`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch attendance");
+        }
+        
+        const data = await response.json();
+        const attendanceData = data.data || data || [];
+        
+        // Calculate attendance statistics for today
+        const presentCount = attendanceData.filter((a: any) => a.status === "PRESENT").length;
+        const onLeaveCount = attendanceData.filter((a: any) => a.status === "ON_LEAVE").length;
+        const absentCount = attendanceData.filter((a: any) => a.status === "ABSENT").length;
+        
+        setAttendance({
+          presentToday: presentCount,
+          onLeave: onLeaveCount,
+          absent: absentCount,
+        });
+      } catch (err) {
+        console.error("Error fetching attendance:", err);
+        // Default to static values if API fails
+        setAttendance({
+          presentToday: 235,
+          onLeave: 13,
+          absent: 0,
+        });
+      } finally {
+        setAttendanceLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
 
   const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-                         emp.id.toLowerCase().includes(searchEmployee.toLowerCase());
-    const matchesDept = filterDepartment === "all" || emp.department === filterDepartment;
+    const fullName = `${emp.firstName} ${emp.lastName}`;
+    const matchesSearch = fullName.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+                         emp.id?.toLowerCase().includes(searchEmployee.toLowerCase());
+    const matchesDept = filterDepartment === "all" || emp.department?.name === filterDepartment;
     return matchesSearch && matchesDept;
   });
 
-  const handleLeaveStatusChange = (requestId: number, newStatus: string) => {
-    setLeaveRequests(leaveRequests.map(request =>
-      request.id === requestId ? { ...request, status: newStatus } : request
-    ));
+  const handleLeaveStatusChange = async (requestId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/leaves/${requestId}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          managerId: "current-manager-id", // Replace with actual manager ID from session
+          status: newStatus,
+          approvalDate: new Date().toISOString(),
+          comments: `Status changed to ${newStatus}`,
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setLeaveRequests(leaveRequests.map(request =>
+          request.id === requestId ? { ...request, status: newStatus } : request
+        ));
+      } else {
+        console.error("Failed to update leave status");
+      }
+    } catch (err) {
+      console.error("Error updating leave status:", err);
+    }
   };
+
+  const handleFormInputChange = (field: string, value: string) => {
+    // Removed - this function is no longer needed
+  };
+
+  const handleAddEmployee = async () => {
+    // Removed - moved to dedicated add employee page
+  };
+
+  // Access Denied View
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+        <Card className="w-full max-w-md border-red-200 dark:border-red-900">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <AlertCircle className="h-16 w-16 text-red-600" />
+            </div>
+            <CardTitle className="text-2xl text-red-600">Access Denied</CardTitle>
+            <CardDescription>You don't have access to this dashboard</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+              Only admins can access the Admin Dashboard. Your current role is <strong>{userRole || "Unknown"}</strong>.
+            </p>
+            <Button 
+              onClick={() => router.push("/login")} 
+              className="w-full"
+            >
+              Back to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -126,7 +350,7 @@ export default function AdminDashboard() {
                   <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Employees</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-black dark:text-white">248</div>
+                  <div className="text-3xl font-bold text-black dark:text-white">{loading ? "-" : employees.length}</div>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">+12 this month</p>
                 </CardContent>
               </Card>
@@ -136,8 +360,8 @@ export default function AdminDashboard() {
                   <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Present Today</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-black dark:text-white">235</div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">94.8% rate</p>
+                  <div className="text-3xl font-bold text-black dark:text-white">{attendanceLoading ? "-" : attendance.presentToday}</div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">{employees.length > 0 ? Math.round((attendance.presentToday / employees.length) * 100) : 0}% rate</p>
                 </CardContent>
               </Card>
 
@@ -146,7 +370,7 @@ export default function AdminDashboard() {
                   <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">On Leave</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-black dark:text-white">13</div>
+                  <div className="text-3xl font-bold text-black dark:text-white">{attendanceLoading ? "-" : attendance.onLeave}</div>
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">Out of office</p>
                 </CardContent>
               </Card>
@@ -201,7 +425,13 @@ export default function AdminDashboard() {
                         <CardTitle>Employee Directory</CardTitle>
                         <CardDescription>Manage all employees</CardDescription>
                       </div>
-                      <Button size="sm">+ Add Employee</Button>
+                      <Button 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => router.push("/admin/employees/add")}
+                      >
+                        <UserPlus className="w-4 h-4" /> Add Employee
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -219,34 +449,46 @@ export default function AdminDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Departments</SelectItem>
-                          {departmentData.map(dept => (
-                            <SelectItem key={dept.name} value={dept.name}>{dept.name}</SelectItem>
-                          ))}
+                          {deptLoading ? (
+                            <SelectItem value="loading" disabled>Loading...</SelectItem>
+                          ) : (
+                            departmentData.map(dept => (
+                              <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* Employee Table */}
                     <div className="space-y-2">
-                      {filteredEmployees.map((emp) => (
-                        <div key={emp.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                          <div className="flex items-center gap-3 flex-1">
-                            <Avatar>
-                              <AvatarImage src={emp.avatar} />
-                              <AvatarFallback>{emp.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-black dark:text-white">{emp.name}</p>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">{emp.role} • {emp.department}</p>
-                              <p className="text-xs text-zinc-600 dark:text-zinc-400">{emp.email}</p>
+                      {loading ? (
+                        <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">Loading employees...</div>
+                      ) : error ? (
+                        <div className="text-center py-8 text-red-600 dark:text-red-400">Error: {error}</div>
+                      ) : filteredEmployees.length > 0 ? (
+                        filteredEmployees.map((emp) => (
+                          <div key={emp.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                            <div className="flex items-center gap-3 flex-1">
+                              <Avatar>
+                                <AvatarImage src={emp.avatar} />
+                                <AvatarFallback>{`${emp.firstName?.[0]}${emp.lastName?.[0]}`.toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-black dark:text-white">{emp.firstName} {emp.lastName}</p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">{emp.designation} • {emp.department?.name}</p>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400">{emp.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge variant={emp.employmentStatus === "ACTIVE" ? "default" : "secondary"}>{emp.employmentStatus}</Badge>
+                              <Button variant="ghost" size="sm">Edit</Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant={emp.status === "Active" ? "default" : "secondary"}>{emp.status}</Badge>
-                            <Button variant="ghost" size="sm">Edit</Button>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">No employees found</div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -357,37 +599,45 @@ export default function AdminDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {departmentData.map((dept) => (
-                      <div key={dept.name} className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <p className="font-medium text-black dark:text-white">{dept.name}</p>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">Head: {dept.head}</p>
+                    {deptLoading ? (
+                      <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">Loading departments...</div>
+                    ) : deptError ? (
+                      <div className="text-center py-8 text-red-600 dark:text-red-400">Error: {deptError}</div>
+                    ) : departmentData.length > 0 ? (
+                      departmentData.map((dept) => (
+                        <div key={dept.id} className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="font-medium text-black dark:text-white">{dept.name}</p>
+                              <p className="text-sm text-zinc-600 dark:text-zinc-400">Head: {dept.head || "N/A"}</p>
+                            </div>
+                            <p className="text-2xl font-bold text-black dark:text-white">{dept.total || 0}</p>
                           </div>
-                          <p className="text-2xl font-bold text-black dark:text-white">{dept.total}</p>
+                          <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mb-3">
+                            <div 
+                              className="bg-green-600 h-2 rounded-full" 
+                              style={{ width: `${dept.total > 0 ? ((dept.available || 0) / dept.total) * 100 : 0}%` }}
+                            ></div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-zinc-600 dark:text-zinc-400">Available</p>
+                              <p className="font-medium text-green-600 dark:text-green-400">{dept.available || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-zinc-600 dark:text-zinc-400">On Leave</p>
+                              <p className="font-medium text-amber-600 dark:text-amber-400">{dept.onLeave || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-zinc-600 dark:text-zinc-400">Absent</p>
+                              <p className="font-medium text-red-600 dark:text-red-400">{dept.absent || 0}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mb-3">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${(dept.available / dept.total) * 100}%` }}
-                          ></div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <p className="text-zinc-600 dark:text-zinc-400">Available</p>
-                            <p className="font-medium text-green-600 dark:text-green-400">{dept.available}</p>
-                          </div>
-                          <div>
-                            <p className="text-zinc-600 dark:text-zinc-400">On Leave</p>
-                            <p className="font-medium text-amber-600 dark:text-amber-400">{dept.onLeave}</p>
-                          </div>
-                          <div>
-                            <p className="text-zinc-600 dark:text-zinc-400">Absent</p>
-                            <p className="font-medium text-red-600 dark:text-red-400">{dept.absent}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">No departments found</div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

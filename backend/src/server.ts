@@ -5,10 +5,13 @@ import dotenv from "dotenv"
 import { PrismaClient } from "@prisma/client"
 
 // Import routes
+import authRoutes from "./routes/auth.js"
 import employeeRoutes from "./routes/employees.js"
 import taskRoutes from "./routes/tasks.js"
 import leaveRoutes from "./routes/leaves.js"
 import salaryRoutes from "./routes/salary.js"
+import departmentRoutes from "./routes/departments.js"
+import attendanceRoutes from "./routes/attendance.js"
 import biometricRoutes from "./routes/biometric.js"
 
 // Import biometric device connector
@@ -45,10 +48,13 @@ app.get("/api/health", (req, res) => {
 })
 
 // ==================== API ROUTES ====================
+app.use("/api/auth", authRoutes)
 app.use("/api/employees", employeeRoutes)
 app.use("/api/tasks", taskRoutes)
 app.use("/api/leaves", leaveRoutes)
 app.use("/api/salary", salaryRoutes)
+app.use("/api/departments", departmentRoutes)
+app.use("/api/attendance", attendanceRoutes)
 app.use("/api/biometric", biometricRoutes)
 
 // ==================== BIOMETRIC DEVICE STATUS ENDPOINT ====================
@@ -152,9 +158,11 @@ const startServer = async () => {
       console.log(`🏥 Health Check: http://localhost:${PORT}/api/health`)
       console.log(`📚 API Endpoints:`)
       console.log(`   - /api/employees`)
+      console.log(`   - /api/departments`)
       console.log(`   - /api/tasks`)
       console.log(`   - /api/leaves`)
       console.log(`   - /api/salary`)
+      console.log(`   - /api/attendance`)
       console.log(`   - /api/biometric`)
       console.log(`   - /api/device/status`)
       console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`)

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -30,18 +31,70 @@ import { PerformanceChart } from "@/components/manager/performance-chart"
 import { TasksOverview } from "@/components/manager/tasks-overview"
 
 export default function ManagerDashboard() {
+  const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [searchEmployee, setSearchEmployee] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Team members data
-  const teamMembers = [
-    { id: "EMP001", name: "John Doe", role: "Senior Software Engineer", department: "IT", email: "john@company.com", status: "Active", avatar: "https://github.com/shadcn.png", performanceScore: 92, tasksCompleted: 24, tasksOverdue: 1, leaveBalance: 8 },
-    { id: "EMP002", name: "Jane Smith", role: "Frontend Developer", department: "IT", email: "jane@company.com", status: "Active", avatar: "https://github.com/vercel.png", performanceScore: 88, tasksCompleted: 19, tasksOverdue: 0, leaveBalance: 10 },
-    { id: "EMP003", name: "Mike Johnson", role: "Backend Developer", department: "IT", email: "mike@company.com", status: "Active", avatar: "", performanceScore: 85, tasksCompleted: 22, tasksOverdue: 2, leaveBalance: 7 },
-    { id: "EMP004", name: "Sarah Williams", role: "DevOps Engineer", department: "IT", email: "sarah@company.com", status: "On Leave", avatar: "", performanceScore: 90, tasksCompleted: 18, tasksOverdue: 0, leaveBalance: 2 },
-    { id: "EMP005", name: "Alex Turner", role: "QA Engineer", department: "IT", email: "alex@company.com", status: "Active", avatar: "", performanceScore: 87, tasksCompleted: 20, tasksOverdue: 1, leaveBalance: 9 },
-    { id: "EMP006", name: "Emma Davis", role: "Tech Lead", department: "IT", email: "emma@company.com", status: "Active", avatar: "", performanceScore: 94, tasksCompleted: 25, tasksOverdue: 0, leaveBalance: 6 },
-  ];
+  // Check user role on component mount
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+    
+    if (role && role !== "MANAGER" && role !== "ADMIN") {
+      setAccessDenied(true);
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch team members from backend API
+  useEffect(() => {
+    if (accessDenied) return;
+    
+    const fetchTeamMembers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5000/api/employees");
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch team members");
+        }
+        
+        const data = await response.json();
+        const employees = data.data || data || [];
+        
+        // Transform employees to team members format
+        const transformed = employees.map((emp: any) => ({
+          id: emp.id || emp.employeeId,
+          name: `${emp.firstName} ${emp.lastName}`,
+          role: emp.designation,
+          department: emp.department?.name || "Unknown",
+          email: emp.email,
+          status: emp.employmentStatus === "ACTIVE" ? "Active" : emp.employmentStatus,
+          avatar: emp.avatar || "",
+          performanceScore: Math.round(Math.random() * 20 + 80), // Will be from performance reviews
+          tasksCompleted: Math.round(Math.random() * 25 + 15),
+          tasksOverdue: Math.round(Math.random() * 3),
+          leaveBalance: Math.round(Math.random() * 12 + 1),
+        }));
+        
+        setTeamMembers(transformed);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching team members:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch team members");
+        setTeamMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeamMembers();
+  }, [accessDenied]);
 
   const filteredMembers = teamMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchEmployee.toLowerCase()) || 
@@ -50,14 +103,48 @@ export default function ManagerDashboard() {
     return matchesSearch && matchesDepartment;
   });
 
+  // Get unique departments
+  const departments = [
+    "all",
+    ...new Set(teamMembers.map(m => m.department))
+  ];
+
   // Key metrics
   const metrics = {
     totalTeam: teamMembers.length,
     activeMembers: teamMembers.filter(m => m.status === "Active").length,
-    avgPerformance: Math.round(teamMembers.reduce((acc, m) => acc + m.performanceScore, 0) / teamMembers.length),
+    avgPerformance: teamMembers.length > 0 ? Math.round(teamMembers.reduce((acc, m) => acc + m.performanceScore, 0) / teamMembers.length) : 0,
     overdueTasksCount: teamMembers.reduce((acc, m) => acc + m.tasksOverdue, 0),
     totalTasksCompleted: teamMembers.reduce((acc, m) => acc + m.tasksCompleted, 0),
   };
+
+  // Access Denied View
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+        <Card className="w-full max-w-md border-red-200 dark:border-red-900">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <AlertCircle className="h-16 w-16 text-red-600" />
+            </div>
+            <CardTitle className="text-2xl text-red-600">Access Denied</CardTitle>
+            <CardDescription>You don't have access to this dashboard</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+              Only managers and admins can access the Manager Dashboard. Your current role is <strong>{userRole || "Unknown"}</strong>.
+            </p>
+            <Button 
+              onClick={() => router.push("/login")} 
+              className="w-full"
+            >
+              Back to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -136,17 +223,29 @@ export default function ManagerDashboard() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Departments</SelectItem>
-                          <SelectItem value="IT">IT</SelectItem>
-                          <SelectItem value="HR">HR</SelectItem>
-                          <SelectItem value="Finance">Finance</SelectItem>
-                          <SelectItem value="Sales">Sales</SelectItem>
+                          {departments.map(dept => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept === "all" ? "All Departments" : dept}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
+                    {/* Loading State */}
+                    {loading && (
+                      <div className="text-center py-8 text-zinc-600">Loading team members...</div>
+                    )}
+
+                    {/* Error State */}
+                    {error && !loading && (
+                      <div className="text-center py-8 text-red-600">Error: {error}</div>
+                    )}
+
                     {/* Team Members Table */}
-                    <TeamMembersTable members={filteredMembers} />
+                    {!loading && !error && (
+                      <TeamMembersTable members={filteredMembers} />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

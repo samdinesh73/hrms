@@ -3,7 +3,46 @@
  * Stores connection settings and device mappings
  */
 
-export const biometricDeviceConfig = {
+interface BiometricConfig {
+  device: {
+    ip: string;
+    port: number;
+    userId: string;
+    password: string;
+    timeout: number;
+    reconnectInterval: number;
+  };
+  polling: {
+    enabled: boolean;
+    interval: number;
+  };
+  userIdMapping: { [key: string]: string };
+  dataFormat: {
+    type: string;
+    csv: {
+      delimiter: string;
+      fields: string[];
+      timeFormat: string;
+    };
+    json: {
+      userIdField: string;
+      timeField: string;
+      checkTypeField: string;
+    };
+  };
+  logging: {
+    enabled: boolean;
+    level: string;
+    logFile: string;
+  };
+  errorHandling: {
+    maxReconnectAttempts: number;
+    retryDelay: number;
+    failureNotificationEmail: string | undefined;
+  };
+}
+
+export const biometricDeviceConfig: BiometricConfig = {
   // Device Connection Settings
   device: {
     ip: process.env.BIOMETRIC_DEVICE_IP || '192.168.1.50',
@@ -108,7 +147,7 @@ export const biometricDeviceConfig = {
  * Get user ID mapping
  * You can also fetch this from database if you have a device_user_mapping table
  */
-export function getUserIdMapping(): { [key: number]: string } {
+export function getUserIdMapping(): { [key: string]: string } {
   return biometricDeviceConfig.userIdMapping;
 }
 
@@ -116,7 +155,7 @@ export function getUserIdMapping(): { [key: number]: string } {
  * Set user ID mapping
  * Call this to dynamically update the mapping
  */
-export function setUserIdMapping(mapping: { [key: number]: string }): void {
+export function setUserIdMapping(mapping: { [key: string]: string }): void {
   Object.assign(biometricDeviceConfig.userIdMapping, mapping);
 }
 
@@ -124,7 +163,7 @@ export function setUserIdMapping(mapping: { [key: number]: string }): void {
  * Add user ID mapping
  */
 export function addUserIdMapping(userId: number, employeeId: string): void {
-  biometricDeviceConfig.userIdMapping[userId] = employeeId;
+  biometricDeviceConfig.userIdMapping[userId.toString()] = employeeId;
 }
 
 export default biometricDeviceConfig;
